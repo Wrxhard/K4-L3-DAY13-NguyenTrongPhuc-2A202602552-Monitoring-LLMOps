@@ -19,9 +19,9 @@
 | Evidence | Đường dẫn |
 |---|---|
 | Pytest cuối | `evidence/01-pytest.png` |
-| Log validator | `evidence/02-log-validator.png` |
+| Log validator | `evidence/02-log-validator.txt` |
 | Dashboard validator | `evidence/03-dashboard-validator.png` |
-| Structured log | `evidence/04-structured-log.png` |
+| Structured log | `evidence/04-structured-log.txt` |
 | PII redaction | `evidence/05-pii-redaction.png` |
 | Trace list | `evidence/06-trace-list.png` |
 | Trace waterfall | `evidence/07-trace-waterfall.png` |
@@ -37,9 +37,9 @@
 
 | Nội dung | Baseline | Kết quả cuối | Nhận xét |
 |---|---|---|---|
-| `validate_logs.py` | 30/100; 42 records, 40 thiếu required fields/context, 0 correlation IDs | | Chưa đạt ở CP0; TODO thuộc CP1. |
+| `validate_logs.py` | 30/100; 42 records, 40 thiếu required fields/context, 0 correlation IDs | CP1: 100/100; 23 records, 11 correlation IDs, 0 PII leak | Đo lại sau khi xóa log baseline và chạy workload mới; [output](evidence/02-log-validator.txt). |
 | `validate_dashboard.py` | HỢP LỆ: 6/6 panel contract | | Chỉ xác nhận cấu hình, chưa xác nhận dashboard runtime. |
-| `pytest` | 22 passed, 2 cảnh báo không ghi được pytest cache | | Chạy bằng `.venv\Scripts\python.exe -m pytest -q`. |
+| `pytest` | 22 passed, 2 cảnh báo không ghi được pytest cache | CP1: 26 passed | Chạy bằng `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider`. |
 | Số traces hợp lệ | 10 root traces mới trên Langfuse | | Đã xác nhận trong project cá nhân đúng tên lab. |
 | Số PII leak | 0 theo log validator | | Kết quả chỉ trên 42 log records hiện có. |
 | Latency P95 / TTFT P95 | 1672 ms / 68 ms | | `/metrics` sau workload 10 request có mạng Langfuse. |
@@ -55,10 +55,10 @@
 
 ## 4. Logging và PII
 
-- **Cách tạo/nhận và truyền correlation ID:**
-- **Các metadata được ghi vào structured log:**
-- **Cách bảo đảm PII được scrub trước khi ghi:**
-- **Cách kiểm chứng kết quả:**
+- **Cách tạo/nhận và truyền correlation ID:** Middleware clear structlog contextvars ở đầu mỗi request; dùng `x-request-id` khi khớp `req-<8-hex>`, nếu không sẽ sinh ID mới. ID được bind vào context, đưa vào `request.state`, response body và header `x-request-id`. Header `x-response-time-ms` chứa thời gian xử lý.
+- **Các metadata được ghi vào structured log:** Trước `request_received`, `/chat` bind `user_id_hash`, `session_id`, `feature`, `model`, `env` cùng `correlation_id` từ middleware. Không ghi user ID nguyên văn.
+- **Cách bảo đảm PII được scrub trước khi ghi:** Processor `scrub_event` xử lý đệ quy mọi chuỗi trong event, gồm metadata, payload lồng nhau và danh sách, sau bước format exception nhưng trước `JsonlFileProcessor` và JSON renderer. Pattern bao phủ email, điện thoại Việt Nam, CCCD và thẻ với các dấu phân cách thông dụng.
+- **Cách kiểm chứng kết quả:** Đã xóa `data/logs.jsonl` baseline sau khi lưu số liệu CP0, khởi động lại API rồi chạy 10 sample queries và một request PII thử nghiệm. `validate_logs.py` đạt 100/100 trên 23 records, 11 ID duy nhất, không có PII leak; [output](evidence/02-log-validator.txt) và [sample log đã scrub](evidence/04-structured-log.txt). Request thử trả `req-a1b2c3d4` ở cả header và body; health trả HTTP 200, `ok: true`, kèm hai response headers. Toàn bộ 26 tests pass.
 
 ## 5. Tracing và prompt versioning
 

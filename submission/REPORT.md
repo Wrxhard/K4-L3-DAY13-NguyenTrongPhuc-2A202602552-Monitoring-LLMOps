@@ -4,13 +4,13 @@
 
 ## 1. Thông tin học viên
 
-- **Họ và tên:**
-- **MSSV:**
+- **Họ và tên:** Nguyễn Trọng Phúc
+- **MSSV:** 2A202602552
 - **Lớp:** K4-L3A
-- **Repository URL:**
+- **Repository URL:** https://github.com/Wrxhard/K4-L3-DAY13-NguyenTrongPhuc-2A202602552-Monitoring-LLMOps
 - **Commit SHA cuối:**
 - **Challenge ID:**
-- **Tên project Langfuse cá nhân:** `day13-k4-l3a-<MSSV>`
+- **Tên project Langfuse cá nhân:** day13-k4-l3a-2A202602552
 
 ## 2. Evidence index
 
@@ -37,13 +37,21 @@
 
 | Nội dung | Baseline | Kết quả cuối | Nhận xét |
 |---|---|---|---|
-| `validate_logs.py` | | | |
-| `validate_dashboard.py` | | | |
-| `pytest` | | | |
-| Số traces hợp lệ | | | |
-| Số PII leak | | | |
-| Latency P95 / TTFT P95 | | | |
+| `validate_logs.py` | 30/100; 42 records, 40 thiếu required fields/context, 0 correlation IDs | | Chưa đạt ở CP0; TODO thuộc CP1. |
+| `validate_dashboard.py` | HỢP LỆ: 6/6 panel contract | | Chỉ xác nhận cấu hình, chưa xác nhận dashboard runtime. |
+| `pytest` | 22 passed, 2 cảnh báo không ghi được pytest cache | | Chạy bằng `.venv\Scripts\python.exe -m pytest -q`. |
+| Số traces hợp lệ | 10 root traces mới trên Langfuse | | Đã xác nhận trong project cá nhân đúng tên lab. |
+| Số PII leak | 0 theo log validator | | Kết quả chỉ trên 42 log records hiện có. |
+| Latency P95 / TTFT P95 | 1672 ms / 68 ms | | `/metrics` sau workload 10 request có mạng Langfuse. |
 | Retrieval success rate | | | |
+
+### Baseline CP0 — 29/09/2026, 14:32 Asia/Ho_Chi_Minh
+
+- `GET http://127.0.0.1:8000/health`: HTTP 200, `ok: true`, `tracing_enabled: true`; cả ba incident flag đều `false`.
+- Chạy `python scripts/load_test.py` với 10 sample queries: 10/10 phản hồi HTTP 200. `data/logs.jsonl` đã tạo, 42 dòng sau hai lượt baseline. Lượt đầu bị sandbox chặn mạng nên không xuất trace; lượt thứ hai chạy API với quyền mạng và tạo 10 trace mới.
+- Langfuse Cloud: project ID `cmumcnrm613mfad0cxhxxbqrb` trong `Nguyen's Organization`, tên hiển thị `day13-k4-l3a-2A202602552`. Baseline có 10 root observations `lab-agent-run` tại 14:32:49–14:32:55. Trace mẫu: `73522435190535796b676011e2eb4cb4` ([mở trace](https://cloud.langfuse.com/project/cmumcnrm613mfad0cxhxxbqrb/traces?traceId=73522435190535796b676011e2eb4cb4)). Project gắn với key trong `.env` và phiên Langfuse cá nhân đang đăng nhập; kiểm tra lại sau đổi tên thấy 20 root traces.
+- Log validator 30/100 là baseline bình thường của starter; `correlation_id` hiện là `MISSING`. Prompt `day13-chat`/`production` chưa có trên Langfuse nên trace ghi `prompt_source=local-fallback`. Các việc này thuộc CP1/CP2.
+- Trạng thái CP0: hoàn thành; health, log, workload, tests và trace trong project cá nhân đúng tên đã được kiểm chứng.
 
 ## 4. Logging và PII
 

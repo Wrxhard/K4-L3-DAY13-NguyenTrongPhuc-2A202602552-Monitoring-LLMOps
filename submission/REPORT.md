@@ -18,16 +18,15 @@
 
 | Evidence | Đường dẫn |
 |---|---|
-| Pytest cuối | `evidence/01-pytest.txt` |
-| Log validator | `evidence/02-log-validator.txt` |
-| Dashboard validator | `evidence/03-dashboard-validator.txt` |
-| Structured log | `evidence/04-structured-log.txt` |
-| PII redaction | `evidence/05-pii-redaction.png` |
-| Trace list, quan hệ cha–con và metadata | `evidence/06-trace-verification.txt` |
-| Trace waterfall | [trace mẫu trên Langfuse](https://cloud.langfuse.com/project/cmumcnrm613mfad0cxhxxbqrb/traces?traceId=c9aee46406dcec5ffbbf2e2aa23126ef) |
-| Prompt versions | `evidence/06-trace-verification.txt` |
-| Prompt rollback | `evidence/10-prompt-rollback.txt` |
-| Dashboard runtime (giá trị) | `evidence/11-dashboard-runtime.txt` |
+| Pytest cuối | `evidence/screenshots/01-pytest.png` |
+| Log validator | `evidence/screenshots/02-log-validator.png` |
+| Dashboard validator | `evidence/screenshots/03-dashboard-validator.png` |
+| Structured log | `evidence/screenshots/04-structured-log.png` |
+| PII redaction | `evidence/screenshots/05-pii-redaction.png` |
+| Trace list, quan hệ cha–con và metadata | `evidence/screenshots/06-trace-list.png`, `evidence/screenshots/08-trace-metadata.png` |
+| Trace waterfall | `evidence/screenshots/07-trace-waterfall.png` |
+| Prompt versions | `evidence/screenshots/09-prompt-versions.png` |
+| Prompt rollback | `evidence/screenshots/10a-prompt-promoted.png`, `evidence/screenshots/10b-prompt-rollback.png` |
 | Dashboard runtime (ảnh do học viên chụp) | `evidence/screenshots/11-dashboard-overview.png` |
 | Incident metric | `evidence/screenshots/12-incident-metric.png` |
 | Incident log | `evidence/screenshots/13-incident-log.png` |

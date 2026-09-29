@@ -1,9 +1,0 @@
-﻿GET /api/dashboard: HTTP 200
-source: data/logs.jsonl
-window: 60 min; refresh: 30 sec
-latency: Latency percentiles and TTFT | ms | threshold lte 3000 | metrics {'p50': 393.0, 'p95': 1583.0, 'p99': 1928.0, 'ttft_p95': 55.0}
-traffic: Request traffic | requests_per_minute | threshold gte 1 | metrics {'count': 21, 'rate_per_minute': 0.35}
-errors: Error rate and retrieval success | percent | threshold lte 2 | metrics {'error_rate_pct': 0.0, 'breakdown': {}, 'retrieval_success_pct': 100.0}
-cost: Cost over time | usd | threshold lte 2.5 | metrics {'total': 0.042111}
-tokens: Input and output tokens | tokens | threshold lte 50000 | metrics {'input': 712, 'output': 2665}
-quality: Quality proxy | score_0_to_1 | threshold gte 0.75 | metrics {'mean': 0.88}

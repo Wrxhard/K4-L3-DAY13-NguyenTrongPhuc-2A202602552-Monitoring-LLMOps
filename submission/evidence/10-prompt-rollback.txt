@@ -1,4 +1,0 @@
-before promote: v1=['baseline', 'production'], v2=['candidate', 'latest'], production=v1
-after promote: v1=['baseline'], v2=['candidate', 'production', 'latest'], production=v2
-promoted production trace: 4902161ca7360eca6e9ef243dd537349
-after rollback: v1=['baseline', 'production'], v2=['candidate', 'latest'], production=v1

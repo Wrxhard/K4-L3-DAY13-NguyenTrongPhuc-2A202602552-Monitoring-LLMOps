@@ -82,10 +82,10 @@
 > Phần này dành riêng cho Checkpoint 3 (CP3). Sẽ được cập nhật chi tiết ngay khi nhận file sự cố `config/challenge.json` từ Lab Coach.
 
 - **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1`
-- **Khoảng thời gian điều tra:** 29/09/2026, 16:09 (Asia/Ho_Chi_Minh)
+- **Khoảng thời gian điều tra:** 29/09/2026, 17:06 (Asia/Ho_Chi_Minh)
 - **Triệu chứng từ metrics:** Latency P95 tăng vọt bất thường (Spike) vượt mốc báo động trên Dashboard. Các request bị nghẽn, thời gian phản hồi ở máy khách (client latency) cộng dồn lên tới hơn 13000ms (13s).
-- **Log line và correlation ID liên quan:** Lọc `data/logs.jsonl` tìm được nhóm request bị chậm. Một `correlation_id` tiêu biểu là `req-f394f1ba` (ghi nhận server `latency_ms`: 2653ms).
-- **Trace ID và span gây ảnh hưởng:** Tra cứu `req-f394f1ba` trên Langfuse. Quan sát biểu đồ Waterfall, span `retrieval` bị kéo dài bất thường mất 2.5s (2500ms), trong khi bình thường chỉ tốn vài mili-giây.
+- **Log line và correlation ID liên quan:** Lọc `data/logs.jsonl` tìm được nhóm request bị chậm. Một `correlation_id` tiêu biểu là `req-3891bd50` (ghi nhận server `latency_ms`: 2653ms).
+- **Trace ID và span gây ảnh hưởng:** Tra cứu `req-3891bd50` trên Langfuse. Quan sát biểu đồ Waterfall, span `retrieval` bị kéo dài bất thường mất 2.5s (2500ms), trong khi bình thường chỉ tốn vài mili-giây.
 - **Root cause:** Sự cố `rag_slow` được kích hoạt khiến hàm `retrieve()` bị delay cố tình (`time.sleep(2.5)`). Tệ hơn, việc dùng hàm đồng bộ `time.sleep` chặn đứng (block) toàn bộ event loop của ứng dụng, gây ra "starvation", khiến các request đồng thời bị xếp hàng chờ, cộng dồn độ trễ lên đến 13s ở máy khách.
 - **Fix action:** Đã vô hiệu hóa sự cố bằng lệnh `python scripts/inject_incident.py --disable` (gọi API `/incidents/rag_slow/disable`). Hotfix mã nguồn nếu cần: Đẩy các hàm blocking I/O (như gọi Vector DB) vào threadpool hoặc dùng `await asyncio.sleep` thay cho `time.sleep`.
 - **Preventive measure:** Áp dụng Circuit Breaker hoặc Strict Timeout (ví dụ 1000ms) cho các module gọi ngoại vi (retriever/database) để "fail-fast". Bổ sung Alert Rule giám sát riêng Latency P95 của span `retrieval` trên Langfuse.

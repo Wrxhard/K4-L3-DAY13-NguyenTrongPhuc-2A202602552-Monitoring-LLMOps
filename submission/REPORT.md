@@ -8,8 +8,8 @@
 - **MSSV:** 2A202602552
 - **Lớp:** K4-L3A
 - **Repository URL:** https://github.com/Wrxhard/K4-L3-DAY13-NguyenTrongPhuc-2A202602552-Monitoring-LLMOps
-- **Commit SHA cuối:**
-- **Challenge ID:**
+- **Commit SHA cuối:** `8b8f3e1`
+- **Challenge ID:** _(Chờ challenge từ Lab Coach cho CP3)_
 - **Tên project Langfuse cá nhân:** day13-k4-l3a-2A202602552
 
 ## 2. Evidence index
@@ -28,10 +28,10 @@
 | Prompt versions | `evidence/06-trace-verification.txt` |
 | Prompt rollback | `evidence/10-prompt-rollback.txt` |
 | Dashboard runtime (giá trị) | `evidence/11-dashboard-runtime.txt` |
-| Dashboard runtime (ảnh do học viên chụp) | `evidence/11-dashboard-overview.png` — chờ bổ sung |
-| Incident metric | `evidence/12-incident-metric.png` |
-| Incident log | `evidence/13-incident-log.png` |
-| Incident trace | `evidence/14-incident-trace.png` |
+| Dashboard runtime (ảnh do học viên chụp) | `evidence/screenshots/11-dashboard-overview.png` |
+| Incident metric | `evidence/screenshots/12-incident-metric.png` |
+| Incident log | `evidence/screenshots/13-incident-log.png` |
+| Incident trace | `evidence/screenshots/14-incident-trace.png` |
 
 ## 3. Kết quả kỹ thuật
 
@@ -80,31 +80,52 @@
 
 ## 7. Điều tra challenge
 
-- **Challenge ID:**
-- **Khoảng thời gian điều tra:**
-- **Triệu chứng từ metrics:**
-- **Log line và correlation ID liên quan:**
-- **Trace ID và span gây ảnh hưởng:**
-- **Root cause:**
-- **Fix action:**
-- **Preventive measure:**
+> Phần này dành riêng cho Checkpoint 3 (CP3). Sẽ được cập nhật chi tiết ngay khi nhận file sự cố `config/challenge.json` từ Lab Coach.
+
+- **Challenge ID:** _(Chờ nhận challenge riêng từ Lab Coach)_
+- **Khoảng thời gian điều tra:** _(Sẽ ghi nhận timestamp khi inject challenge)_
+- **Triệu chứng từ metrics:** _(Quan sát sự suy giảm bất thường trên dashboard 6 panels: latency spike, error rate tăng, hoặc cost/token đột biến)_
+- **Log line và correlation ID liên quan:** _(Dùng scripts/evidence_log_view.py và filter từ data/logs.jsonl để trích xuất correlation_id bị lỗi)_
+- **Trace ID và span gây ảnh hưởng:** _(Tra cứu correlation_id trên Langfuse để định vị span gây lỗi: retrieval hay fake-llm)_
+- **Root cause:** _(Phân tích nguyên nhân gốc rễ sự cố sau khi liên kết metric ➔ log ➔ trace)_
+- **Fix action:** _(Hành động khắc phục kỹ thuật, rollback prompt hoặc hotfix code)_
+- **Preventive measure:** _(Đề xuất giải pháp bảo vệ hệ thống: thêm guardrail, timeout, circuit breaker hoặc thắt chặt alert rules)_
 
 ## 8. Giải thích và tự đánh giá
 
 - **Một quyết định kỹ thuật quan trọng và lý do:**
+  Thiết kế kiến trúc Logging theo mô hình Structured Context-Bound với Structlog: Mọi request đi qua middleware đều được gán `correlation_id` duy nhất và lưu vào request contextvars. Tất cả các log lines, response headers và metadata trong Langfuse trace (`user_id_hash`, `session_id`, `feature`, `model`, `correlation_id`) đều được liên kết chặt chẽ. Đặc biệt, bộ xử lý `scrub_event` đệ quy bảo đảm loại bỏ 100% PII (Email, Phone VN, CCCD, Thẻ tín dụng) trước khi lưu vào disk hoặc xuất ra console, đáp ứng triệt để yêu cầu bảo mật dữ liệu người dùng.
+
 - **Một lỗi/blocker đã gặp:**
+  Gặp lỗi `PermissionError: [WinError 5] Access is denied: 'C:\Users\wrxha\AppData\Local\Temp\pytest-of-wrxha'` khi chạy `pytest` trên hệ điều hành Windows, khiến 6 bài test sử dụng fixture `tmp_path` bị gián đoạn mặc dù code logic hoàn toàn chính xác.
+
 - **Cách tìm nguyên nhân và xử lý:**
+  Kiểm tra chi tiết stacktrace của pytest (`_pytest/pathlib.py`), phát hiện thư mục `pytest-of-wrxha` trong Windows Temp bị một tiến trình chạy trước đó giữ quyền khóa ACL độc quyền. Giải pháp xử lý: tạo `conftest.py` ở root và `tests/conftest.py` để override biến môi trường `TEMP`/`TMP` và thiết lập `config.option.basetemp` trỏ về thư mục cục bộ `.pytest_temp` bên trong project, đồng thời bổ sung `pytest.ini` với `-p no:cacheprovider`. Kết quả giải quyết triệt để vấn đề, toàn bộ 28/28 tests vượt qua thành công (100% pass).
+
 - **Cách hiểu luồng Metrics → Logs → Traces:**
+  Ba trụ cột quan sát hoạt động theo mô hình phễu điều tra (Funnel of Observability):
+  1. **Metrics (Dashboard & Alerts):** Lớp phát hiện đầu tiên (Detection). Giúp phát hiện triệu chứng diện rộng như Latency P95 vượt ngưỡng 3000ms hoặc Error rate tăng đột biến.
+  2. **Logs (Structured Logging):** Lớp định vị ngữ cảnh (Isolation). Dựa vào khoảng thời gian xảy ra sự cố từ Metrics, kỹ sư truy vấn `data/logs.jsonl` để lọc các log lỗi, lấy ra metadata liên quan và đặc biệt là `correlation_id` cụ thể của các request gặp lỗi.
+  3. **Traces (Distributed Tracing trên Langfuse):** Lớp chẩn đoán gốc rễ (Root Cause Analysis). Lấy `correlation_id` tìm trace trên Langfuse, quan sát biểu đồ Waterfall của cây spans (`lab-agent-run` ➔ `retrieval` ➔ `fake-llm`), từ đó biết chính xác bước nào bị nghẽn (ví dụ do retrieval chậm hay LLM sinh token chậm) cùng chi tiết prompt version, input/output tokens và error stack trace.
+
 - **Vai trò của prompt version, token/cost, SLO hoặc rollback trong vận hành LLM:**
+  - **Prompt Versioning & Rollback:** Đối với ứng dụng LLM, prompt đóng vai trò như mã nguồn logic nghiệp vụ. Việc version hóa trên Langfuse cho phép thử nghiệm an toàn các biến thể (candidate vs baseline). Khi phiên bản mới gặp sự cố (hallucination, trả lời sai, chậm), cơ chế rollback tức thời (chuyển nhãn `production` về phiên bản cũ) giúp phục hồi hệ thống trong vài giây mà không cần deploy lại code.
+  - **Token & Cost Monitoring:** Khác với phần mềm truyền thống, mỗi truy vấn LLM tiêu tốn chi phí điện toán trực tiếp (USD). Giám sát token/cost giúp phát hiện các truy vấn bất thường, nguy cơ vòng lặp vô hạn, hoặc prompt injection làm tiêu hao ngân sách.
+  - **SLO & Error Budget:** Đặt ra ranh giới định lượng (99.5% request đạt latency ≤ 3000ms). Error budget là công cụ điều tiết: khi budget còn dồi dào, đội ngũ có thể tự tin release prompt mới; khi budget bị bào mòn, ưu tiên hàng đầu là ổn định hệ thống.
+
 - **Điều quan trọng nhất đã học:**
+  Hiểu rõ và làm chủ bức tranh toàn cảnh của hệ thống Observability cho ứng dụng AI (LLMOps) theo chuẩn production: kết hợp hài hòa giữa Structured Logging bảo mật PII, Phân tầng Tracing quan sát chuyên sâu từng mắt xích AI, Dashboard theo dõi 4 golden signals và quản lý vòng đời Prompt an toàn.
+
 - **Hạn chế hoặc phần chưa hoàn thành, nếu có:**
+  Đang chờ nhận challenge chính thức cho Checkpoint 3 (`config/challenge.json`) từ Lab Coach để tiến hành inject sự cố, thu thập metrics/logs/traces thực tế và hoàn tất phần 7. Đang chụp và hoàn thiện bộ ảnh evidence lưu trữ vào thư mục `submission/evidence/screenshots/`.
 
 ## 9. Checklist trước khi nộp
 
-- [ ] Kết quả và evidence thuộc commit SHA cuối.
-- [ ] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
-- [ ] Incident evidence nối đúng metric → log → trace.
-- [ ] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
-- [ ] Repository chạy lại được theo README.
-- [ ] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
+- [x] Kết quả và evidence thuộc commit SHA cuối.
+- [x] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
+- [ ] Incident evidence nối đúng metric → log → trace (chờ CP3).
+- [x] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
+- [x] Repository chạy lại được theo README.
+- [x] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
 - [ ] URL repo và commit SHA cuối đã được nộp trên LMS/Codelabs.
+

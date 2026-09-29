@@ -8,8 +8,8 @@
 - **MSSV:** 2A202602552
 - **Lớp:** K4-L3A
 - **Repository URL:** https://github.com/Wrxhard/K4-L3-DAY13-NguyenTrongPhuc-2A202602552-Monitoring-LLMOps
-- **Commit SHA cuối:** `8b8f3e1`
-- **Challenge ID:** _(Chờ challenge từ Lab Coach cho CP3)_
+- **Commit SHA cuối:** `a6a12ec`
+- **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1`
 - **Tên project Langfuse cá nhân:** day13-k4-l3a-2A202602552
 
 ## 2. Evidence index
@@ -82,14 +82,14 @@
 
 > Phần này dành riêng cho Checkpoint 3 (CP3). Sẽ được cập nhật chi tiết ngay khi nhận file sự cố `config/challenge.json` từ Lab Coach.
 
-- **Challenge ID:** _(Chờ nhận challenge riêng từ Lab Coach)_
-- **Khoảng thời gian điều tra:** _(Sẽ ghi nhận timestamp khi inject challenge)_
-- **Triệu chứng từ metrics:** _(Quan sát sự suy giảm bất thường trên dashboard 6 panels: latency spike, error rate tăng, hoặc cost/token đột biến)_
-- **Log line và correlation ID liên quan:** _(Dùng scripts/evidence_log_view.py và filter từ data/logs.jsonl để trích xuất correlation_id bị lỗi)_
-- **Trace ID và span gây ảnh hưởng:** _(Tra cứu correlation_id trên Langfuse để định vị span gây lỗi: retrieval hay fake-llm)_
-- **Root cause:** _(Phân tích nguyên nhân gốc rễ sự cố sau khi liên kết metric ➔ log ➔ trace)_
-- **Fix action:** _(Hành động khắc phục kỹ thuật, rollback prompt hoặc hotfix code)_
-- **Preventive measure:** _(Đề xuất giải pháp bảo vệ hệ thống: thêm guardrail, timeout, circuit breaker hoặc thắt chặt alert rules)_
+- **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1`
+- **Khoảng thời gian điều tra:** 29/09/2026, 16:09 (Asia/Ho_Chi_Minh)
+- **Triệu chứng từ metrics:** Latency P95 tăng vọt bất thường (Spike) vượt mốc báo động trên Dashboard. Các request bị nghẽn, thời gian phản hồi ở máy khách (client latency) cộng dồn lên tới hơn 13000ms (13s).
+- **Log line và correlation ID liên quan:** Lọc `data/logs.jsonl` tìm được nhóm request bị chậm. Một `correlation_id` tiêu biểu là `req-f394f1ba` (ghi nhận server `latency_ms`: 2653ms).
+- **Trace ID và span gây ảnh hưởng:** Tra cứu `req-f394f1ba` trên Langfuse. Quan sát biểu đồ Waterfall, span `retrieval` bị kéo dài bất thường mất 2.5s (2500ms), trong khi bình thường chỉ tốn vài mili-giây.
+- **Root cause:** Sự cố `rag_slow` được kích hoạt khiến hàm `retrieve()` bị delay cố tình (`time.sleep(2.5)`). Tệ hơn, việc dùng hàm đồng bộ `time.sleep` chặn đứng (block) toàn bộ event loop của ứng dụng, gây ra "starvation", khiến các request đồng thời bị xếp hàng chờ, cộng dồn độ trễ lên đến 13s ở máy khách.
+- **Fix action:** Đã vô hiệu hóa sự cố bằng lệnh `python scripts/inject_incident.py --disable` (gọi API `/incidents/rag_slow/disable`). Hotfix mã nguồn nếu cần: Đẩy các hàm blocking I/O (như gọi Vector DB) vào threadpool hoặc dùng `await asyncio.sleep` thay cho `time.sleep`.
+- **Preventive measure:** Áp dụng Circuit Breaker hoặc Strict Timeout (ví dụ 1000ms) cho các module gọi ngoại vi (retriever/database) để "fail-fast". Bổ sung Alert Rule giám sát riêng Latency P95 của span `retrieval` trên Langfuse.
 
 ## 8. Giải thích và tự đánh giá
 
@@ -123,9 +123,9 @@
 
 - [x] Kết quả và evidence thuộc commit SHA cuối.
 - [x] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
-- [ ] Incident evidence nối đúng metric → log → trace (chờ CP3).
+- [x] Incident evidence nối đúng metric → log → trace.
 - [x] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
 - [x] Repository chạy lại được theo README.
 - [x] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
-- [ ] URL repo và commit SHA cuối đã được nộp trên LMS/Codelabs.
+- [x] URL repo và commit SHA cuối đã được nộp trên LMS/Codelabs.
 

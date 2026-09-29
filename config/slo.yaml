@@ -7,7 +7,7 @@ primary_slo:
     total_event: 'event == "request_received"'
   target_percent: 99.5
   error_budget_percent: 0.5
-  note: Học viên phải giải thích hoặc điều chỉnh ngưỡng bằng baseline của mình.
+  note: 'Baseline CP0 P95 1672 ms, dưới 3000 ms; giữ ngưỡng 3000 ms để phát hiện chậm rõ rệt. Một request chỉ tốt khi có response_sent trong 3000 ms. Budget 28 ngày = 0.005 * tổng request_received, tương đương 5 request xấu trên 1000 request.'
 guardrails:
   error_rate_pct_max: 2
   daily_cost_usd_max: 2.5

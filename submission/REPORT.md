@@ -18,17 +18,17 @@
 
 | Evidence | Đường dẫn |
 |---|---|
-| Pytest cuối | `evidence/01-pytest.png` |
+| Pytest cuối | `evidence/01-pytest.txt` |
 | Log validator | `evidence/02-log-validator.txt` |
-| Dashboard validator | `evidence/03-dashboard-validator.png` |
+| Dashboard validator | `evidence/03-dashboard-validator.txt` |
 | Structured log | `evidence/04-structured-log.txt` |
 | PII redaction | `evidence/05-pii-redaction.png` |
-| Trace list | `evidence/06-trace-list.png` |
-| Trace waterfall | `evidence/07-trace-waterfall.png` |
-| Trace metadata | `evidence/08-trace-metadata.png` |
-| Prompt versions | `evidence/09-prompt-versions.png` |
-| Prompt rollback | `evidence/10-prompt-rollback.png` |
-| Dashboard runtime | `evidence/11-dashboard-overview.png` |
+| Trace list, quan hệ cha–con và metadata | `evidence/06-trace-verification.txt` |
+| Trace waterfall | [trace mẫu trên Langfuse](https://cloud.langfuse.com/project/cmumcnrm613mfad0cxhxxbqrb/traces?traceId=c9aee46406dcec5ffbbf2e2aa23126ef) |
+| Prompt versions | `evidence/06-trace-verification.txt` |
+| Prompt rollback | `evidence/10-prompt-rollback.txt` |
+| Dashboard runtime (giá trị) | `evidence/11-dashboard-runtime.txt` |
+| Dashboard runtime (ảnh do học viên chụp) | `evidence/11-dashboard-overview.png` — chờ bổ sung |
 | Incident metric | `evidence/12-incident-metric.png` |
 | Incident log | `evidence/13-incident-log.png` |
 | Incident trace | `evidence/14-incident-trace.png` |
@@ -38,12 +38,12 @@
 | Nội dung | Baseline | Kết quả cuối | Nhận xét |
 |---|---|---|---|
 | `validate_logs.py` | 30/100; 42 records, 40 thiếu required fields/context, 0 correlation IDs | CP1: 100/100; 23 records, 11 correlation IDs, 0 PII leak | Đo lại sau khi xóa log baseline và chạy workload mới; [output](evidence/02-log-validator.txt). |
-| `validate_dashboard.py` | HỢP LỆ: 6/6 panel contract | | Chỉ xác nhận cấu hình, chưa xác nhận dashboard runtime. |
-| `pytest` | 22 passed, 2 cảnh báo không ghi được pytest cache | CP1: 26 passed | Chạy bằng `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider`. |
-| Số traces hợp lệ | 10 root traces mới trên Langfuse | | Đã xác nhận trong project cá nhân đúng tên lab. |
-| Số PII leak | 0 theo log validator | | Kết quả chỉ trên 42 log records hiện có. |
-| Latency P95 / TTFT P95 | 1672 ms / 68 ms | | `/metrics` sau workload 10 request có mạng Langfuse. |
-| Retrieval success rate | | | |
+| `validate_dashboard.py` | HỢP LỆ: 6/6 panel contract | CP2: 6/6 | Validator cấu trúc; runtime HTTP 200 và sáu panel có dữ liệu trong [evidence](evidence/11-dashboard-runtime.txt). |
+| `pytest` | 22 passed, 2 cảnh báo không ghi được pytest cache | CP2: 28 passed | Chạy bằng `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider`. |
+| Số traces hợp lệ | 10 root traces mới trên Langfuse | CP2: 10 trace mới, mỗi trace có root + 2 child | Đã đối chiếu project cá nhân, quan hệ parent và log correlation ID. |
+| Số PII leak | 0 theo log validator | 0 trên 44 log records | `validate_logs.py` đạt 100/100. |
+| Latency P95 / TTFT P95 | 1672 ms / 68 ms | 1583 ms / 55 ms | Dashboard 60 phút lúc kiểm tra CP2. |
+| Retrieval success rate | Chưa có panel | 100% | 21 request trong cửa sổ dashboard. |
 
 ### Baseline CP0 — 29/09/2026, 14:32 Asia/Ho_Chi_Minh
 
@@ -62,21 +62,21 @@
 
 ## 5. Tracing và prompt versioning
 
-- **Cách xác nhận traces do chính tôi tạo trong project cá nhân:**
-- **Cấu trúc root/retrieval/generation observations:**
-- **Cách nối trace với log:**
-- **Prompt name:**
-- **Version/label baseline:**
-- **Version/label candidate:**
-- **Trace ID của mỗi version:**
-- **Cách promote và rollback `production`:**
+- **Project và traces:** Project Langfuse cá nhân `day13-k4-l3a-2A202602552` (`cmumcnrm613mfad0cxhxxbqrb`). Chạy workload 10 request HTTP 200 sau khi thêm child spans; 10 trace ID và kết quả kiểm tra trực tiếp bằng Langfuse API ở [evidence](evidence/06-trace-verification.txt). Script `scripts/verify_cp2_traces.py` có thể chạy lại.
+- **Cấu trúc:** Mỗi trace có root `lab-agent-run` (AGENT), child `retrieval` (RETRIEVER) và `fake-llm` (GENERATION), cùng parent ID của root. Generation lưu model `claude-sonnet-4-5`, prompt link `day13-chat` v1, input/output tokens và cost. Trace mẫu `c9aee46406dcec5ffbbf2e2aa23126ef`: retrieval 0,001 s, generation 0,152 s, root 0,155 s; waterfall chỉ rõ LLM là bước chậm. Root/generation không lưu raw input/output.
+- **Metadata và nối log:** `user_id` là SHA-256 rút gọn 12 hex; `session_id`, feature, model, env `dev`, `correlation_id` hiện trên trace. Script xác minh cả 10 correlation ID khớp dòng `response_sent` trong `data/logs.jsonl`. Ví dụ trace trên có `req-ba26a24e`.
+- **Prompt name:** text prompt `day13-chat`, giữ `{{feature}}`, `{{docs}}`, `{{message}}`.
+- **Version/label baseline:** v1 có `baseline` và `production`; template ba dòng `Feature`, `Docs`, `Question`.
+- **Version/label candidate:** v2 có `candidate` và `latest`; chỉ thêm câu `Answer in at most three sentences.`
+- **Cùng input:** `Explain the observability workflow`; trace `3650ec0fb005867ce1ccb0ee49d446b2` dùng `baseline`/v1, trace `3bd11d375b393b3f5fb18c943e7d4737` dùng `candidate`/v2. Cả hai có `prompt_source=langfuse` và prompt link/version đúng, không phải local fallback.
+- **Promote/rollback `production`:** Chuyển label `production` sang v2, chạy cùng input tạo trace `4902161ca7360eca6e9ef243dd537349` (production/v2). Sau đó chuyển `production` về v1; xác minh API trả v1 có `baseline, production`, v2 có `candidate, latest`, `production=v1`. [Evidence trạng thái trước/sau](evidence/10-prompt-rollback.txt) và [kiểm tra trace](evidence/06-trace-verification.txt).
 
 ## 6. Dashboard, SLO và alerts
 
-- **Dashboard và sáu panel:**
-- **SLO và lý do chọn:**
-- **Cách tính error budget:**
-- **Ba alert và runbook tương ứng:**
+- **Dashboard và sáu panel:** Dashboard local tại `http://127.0.0.1:8501`, chạy bằng `python -m dashboard.server`. Nguồn duy nhất `data/logs.jsonl`, cửa sổ 60 phút, refresh 30 giây. Sáu panel khớp `config/dashboard.yaml`: latency P50/P95/P99 + TTFT P95; traffic; error rate + breakdown + retrieval success; cost; input/output tokens; quality proxy. Mỗi panel có tên, đơn vị và threshold line. Lúc xác minh: 21 requests, P95 1583 ms, TTFT P95 55 ms, error 0%, retrieval success 100%, cost 0,042111 USD, tokens 712/2665, quality 0,88. [Runtime values](evidence/11-dashboard-runtime.txt), [validator 6/6](evidence/03-dashboard-validator.txt). Học viên sẽ tự chụp ảnh dashboard runtime và đặt tại `evidence/11-dashboard-overview.png`.
+- **SLO và lý do chọn:** `fast_successful_requests`: 99,5% request trong 28 ngày phải có `response_sent` với latency ≤3000 ms. Baseline CP0 P95 1672 ms nên ngưỡng 3000 ms phát hiện suy giảm lớn mà không báo động từ dao động thường. Guardrails: error rate ≤2%, daily cost ≤2,5 USD, quality proxy ≥0,75, retrieval success ≥90%.
+- **Error budget:** 100% − 99,5% = 0,5% request xấu trong rolling 28 ngày, tức `floor(0.005 × tổng request_received)`. Với 1000 request được phép tối đa 5 request lỗi/chậm; với 10.000 request là 50. Baseline 21 request là mẫu nhỏ, không dùng để kết luận SLO 28 ngày.
+- **Ba alert và runbook:** `user_latency_p95_high` warning khi P95 >3000 ms trong 5 phút; `user_request_failure_rate_high` critical khi error rate >2% trong 5 phút; `user_quality_proxy_low` warning khi mean quality <0,75 trong 15 phút. Mỗi alert có minimum sample, duration, owner, Slack `#day13-llmops-alerts` và [runbook ba bước](../docs/alerts.md) trong `config/alert_rules.yaml`. Đây là cấu hình đặc tả, chưa có bộ gửi Slack tự động.
 
 ## 7. Điều tra challenge
 

@@ -1,0 +1,16 @@
+﻿CP2 Langfuse trace verification
+c9aee46406dcec5ffbbf2e2aa23126ef: root=bf0a5a05f2dee8ac, children=retrieval+fake-llm, correlation_id=req-ba26a24e, log=matched, raw_io=none
+2895c9bd9f7c9539c6b3b28ce4b0f70a: root=2ab867be49cb031b, children=retrieval+fake-llm, correlation_id=req-38301b43, log=matched, raw_io=none
+90a9ff06d0aeaa385c027f118c1d674d: root=9aa0da86b90a3379, children=retrieval+fake-llm, correlation_id=req-7cf2a522, log=matched, raw_io=none
+2d0b7ca53d23d99c74aa274adcc31ad2: root=83890899ba4d5f75, children=retrieval+fake-llm, correlation_id=req-63cb1c05, log=matched, raw_io=none
+c5bc7a14dba06963d6eb5027c9536798: root=83c21428edfbad02, children=retrieval+fake-llm, correlation_id=req-1ac1f374, log=matched, raw_io=none
+89ba907055749f61f7b4e7806f73c180: root=4ca132dddaa977dc, children=retrieval+fake-llm, correlation_id=req-f8325d68, log=matched, raw_io=none
+1e8a216f6d8fd3fc87bb84c5e5425bc8: root=a13db4a725cbd5d0, children=retrieval+fake-llm, correlation_id=req-eb664e9d, log=matched, raw_io=none
+86e4b236badf703e171bee3b5185981f: root=ed4fccb9fd2b8d40, children=retrieval+fake-llm, correlation_id=req-e0c6b58b, log=matched, raw_io=none
+cfa9f2536f5ae7975b37e477c67393b3: root=af839adfade0fa4e, children=retrieval+fake-llm, correlation_id=req-5b61b353, log=matched, raw_io=none
+b3a3831f3bfe558e2b5eb7ac62191ccc: root=a7f3b8fa8e7c69d5, children=retrieval+fake-llm, correlation_id=req-2a74df5e, log=matched, raw_io=none
+baseline: trace=3650ec0fb005867ce1ccb0ee49d446b2, prompt=day13-chat v1, source=langfuse, raw_io=none
+candidate: trace=3bd11d375b393b3f5fb18c943e7d4737, prompt=day13-chat v2, source=langfuse, raw_io=none
+production-promoted: trace=4902161ca7360eca6e9ef243dd537349, prompt=day13-chat v2, source=langfuse, raw_io=none
+after rollback: v1=['baseline', 'production'], v2=['candidate', 'latest'], production=v1
+PASS: 10 child trees, 3 prompt traces, production rollback

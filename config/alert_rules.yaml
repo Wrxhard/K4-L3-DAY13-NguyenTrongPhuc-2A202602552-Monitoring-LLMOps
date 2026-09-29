@@ -1,25 +1,28 @@
 alerts:
-  - name: TODO_alert_1
-    severity: TODO
-    condition: TODO
-    duration: TODO
+  - name: user_latency_p95_high
+    severity: warning
+    condition: 'p95(response_sent.latency_ms, 5m) > 3000 and count(request_received, 5m) >= 5'
+    duration: 5m
     type: symptom-based
     channel: slack
-    owner: TODO
-    runbook: docs/alerts.md#alert-1
-  - name: TODO_alert_2
-    severity: TODO
-    condition: TODO
-    duration: TODO
+    slack_channel: '#day13-llmops-alerts'
+    owner: on-call LLMOps
+    runbook: docs/alerts.md#alert-1-latency
+  - name: user_request_failure_rate_high
+    severity: critical
+    condition: 'count(request_failed, 5m) / count(request_received, 5m) * 100 > 2 and count(request_received, 5m) >= 5'
+    duration: 5m
     type: symptom-based
     channel: slack
-    owner: TODO
-    runbook: docs/alerts.md#alert-2
-  - name: TODO_alert_3
-    severity: TODO
-    condition: TODO
-    duration: TODO
+    slack_channel: '#day13-llmops-alerts'
+    owner: on-call API
+    runbook: docs/alerts.md#alert-2-request-failures
+  - name: user_quality_proxy_low
+    severity: warning
+    condition: 'mean(response_sent.quality_score, 15m) < 0.75 and count(response_sent, 15m) >= 10'
+    duration: 15m
     type: symptom-based
     channel: slack
-    owner: TODO
-    runbook: docs/alerts.md#alert-3
+    slack_channel: '#day13-llmops-alerts'
+    owner: on-call AI quality
+    runbook: docs/alerts.md#alert-3-quality

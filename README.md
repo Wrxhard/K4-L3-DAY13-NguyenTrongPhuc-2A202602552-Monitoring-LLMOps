@@ -119,6 +119,14 @@ Không capture raw prompt/output chứa PII. Correlation ID phải xuất hiện
 
 Dashboard dùng `data/logs.jsonl` làm nguồn chuẩn và giữ đúng 6 panel trong `config/dashboard.yaml`. Panel latency phải có P50/P95/P99 và TTFT; panel errors phải thể hiện cả retrieval success. Sau đó hoàn thiện:
 
+Sau khi API và load test đã tạo log, mở dashboard local trong terminal khác:
+
+```bash
+python -m dashboard.server --host 127.0.0.1 --port 8501
+```
+
+Truy cập `http://127.0.0.1:8501`. Dashboard đọc lại log khi refresh 30 giây; 6 panel dùng cửa sổ 60 phút và hiển thị ngưỡng trong `config/dashboard.yaml`.
+
 - `config/slo.yaml`: giải thích hoặc điều chỉnh SLO, tính error budget;
 - `config/alert_rules.yaml`: ba alert symptom-based, có duration, severity, owner, Slack channel và runbook;
 - `docs/alerts.md`: cách kiểm tra và mitigation cho từng alert.

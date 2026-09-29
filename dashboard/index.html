@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Day 13 Monitoring Dashboard</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #0b1220; color: #ecf2fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 30px; }
+    main { max-width: 1440px; margin: auto; }
+    header { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 24px; }
+    h1 { font-size: clamp(24px, 3vw, 36px); letter-spacing: -.035em; margin: 0 0 8px; }
+    header p { margin: 0; color: #9fb0ca; }
+    .status { text-align: right; color: #b8c7dd; font-size: 13px; line-height: 1.7; }
+    .status strong { color: #77e2bc; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    article { background: #111d30; border: 1px solid #273952; border-radius: 18px; padding: 20px 22px 18px; min-width: 0; box-shadow: 0 14px 35px #03081230; }
+    .panel-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+    h2 { font-size: 17px; margin: 0; letter-spacing: -.01em; }
+    .unit { color: #9fb0ca; font-size: 12px; white-space: nowrap; }
+    .stats { display: flex; flex-wrap: wrap; gap: 18px; margin: 16px 0 12px; min-height: 53px; }
+    .stat { min-width: 94px; }
+    .stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+    .stat span { color: #99abc5; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+    .chart { width: 100%; height: 148px; display: block; overflow: visible; }
+    .axis, .legend, .foot { color: #93a5c0; font-size: 11px; }
+    .axis { display: flex; justify-content: space-between; margin-top: 4px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 11px; }
+    .legend span::before { content: ''; display: inline-block; width: 9px; height: 9px; background: var(--swatch); border-radius: 50%; margin-right: 6px; }
+    .foot { border-top: 1px solid #273952; margin-top: 14px; padding-top: 12px; display: flex; justify-content: space-between; gap: 10px; }
+    .threshold { color: #f0c875; }
+    .empty { color: #9fb0ca; padding: 50px 0; text-align: center; }
+    @media (max-width: 850px) { body { padding: 16px; } .grid { grid-template-columns: 1fr; } header { align-items: flex-start; flex-direction: column; } .status { text-align: left; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><h1 id="title">Monitoring &amp; LLMOps</h1><p>Metrics → Logs → Traces · Dữ liệu ứng dụng trong 60 phút gần nhất</p></div>
+    <div class="status"><strong id="state">Đang tải dữ liệu…</strong><br><span id="updated"></span><br><span id="source"></span></div>
+  </header>
+  <div class="grid" id="panels"></div>
+</main>
+<script>
+  const colors = ['#57c7e8', '#ffce78', '#bb9cff', '#72dea9'];
+  const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const value = (number, digits = 0) => number == null ? '—' : Number(number).toLocaleString('en-US', {maximumFractionDigits: digits});
+  const stat = (label, number, digits = 0, suffix = '') => `<div class="stat"><b>${value(number, digits)}${number == null ? '' : suffix}</b><span>${escapeHtml(label)}</span></div>`;
+  function summary(panel) {
+    const m = panel.metrics;
+    switch (panel.id) {
+      case 'latency': return stat('P50', m.p50, 0, ' ms') + stat('P95', m.p95, 0, ' ms') + stat('P99', m.p99, 0, ' ms') + stat('TTFT P95', m.ttft_p95, 0, ' ms');
+      case 'traffic': return stat('Requests', m.count) + stat('Avg requests/min', m.rate_per_minute, 2);
+      case 'errors': return stat('Error rate', m.error_rate_pct, 2, '%') + stat('Retrieval success', m.retrieval_success_pct, 2, '%') + stat('Error types', Object.keys(m.breakdown).length);
+      case 'cost': return stat('Total cost', m.total, 6, ' USD');
+      case 'tokens': return stat('Input', m.input) + stat('Output', m.output) + stat('Total', m.input + m.output);
+      case 'quality': return stat('Mean score', m.mean, 2);
+    }
+    return '';
+  }
+  function chart(panel) {
+    const width = 600, height = 148, top = 12, bottom = 18;
+    const all = panel.series.flatMap(series => series.values.filter(item => item != null));
+    const max = Math.max(1, panel.threshold.value, ...all) * 1.08;
+    const x = index => index / Math.max(1, panel.times.length - 1) * width;
+    const y = number => top + (1 - number / max) * (height - top - bottom);
+    const thresholdY = y(panel.threshold.value);
+    let svg = `<svg class="chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(panel.title)} chart with threshold ${panel.threshold.value}">`;
+    for (const fraction of [0, .5, 1]) svg += `<line x1="0" y1="${y(max * fraction)}" x2="${width}" y2="${y(max * fraction)}" stroke="#263950" stroke-width="1"/>`;
+    svg += `<line x1="0" y1="${thresholdY}" x2="${width}" y2="${thresholdY}" stroke="#f0c875" stroke-dasharray="7 5" stroke-width="1.5"/>`;
+    panel.series.forEach((series, index) => {
+      let path = '', started = false;
+      series.values.forEach((point, i) => {
+        if (point == null) { started = false; return; }
+        path += `${started ? ' L' : ' M'}${x(i).toFixed(1)} ${y(point).toFixed(1)}`;
+        started = true;
+      });
+      svg += `<path d="${path}" fill="none" stroke="${colors[index % colors.length]}" stroke-width="2.4" vector-effect="non-scaling-stroke"/>`;
+    });
+    return svg + '</svg>';
+  }
+  function render(data) {
+    document.getElementById('title').textContent = data.title;
+    document.getElementById('state').textContent = 'Đang hoạt động · tự refresh ' + data.refresh_seconds + ' giây';
+    document.getElementById('updated').textContent = 'Cập nhật ' + new Date(data.generated_at).toLocaleString('vi-VN');
+    document.getElementById('source').textContent = 'Nguồn: ' + data.source;
+    document.getElementById('panels').innerHTML = data.panels.map(panel => {
+      const threshold = panel.threshold;
+      const operator = threshold.operator === 'lte' ? '≤' : '≥';
+      const breakdown = panel.id === 'errors' ? Object.entries(panel.metrics.breakdown).map(([name, count]) => `${escapeHtml(name)}: ${count}`).join(' · ') : '';
+      const legend = panel.series.map((series, i) => `<span style="--swatch:${colors[i % colors.length]}">${escapeHtml(series.name)}</span>`).join('');
+      return `<article><div class="panel-head"><h2>${escapeHtml(panel.title)}</h2><span class="unit">${escapeHtml(panel.unit)} · ${data.time_range_minutes} min</span></div><div class="stats">${summary(panel)}</div>${chart(panel)}<div class="axis"><span>−${data.time_range_minutes} min</span><span>now</span></div><div class="legend">${legend}</div><div class="foot"><span class="threshold">SLO / threshold ${operator} ${value(threshold.value, 2)} ${escapeHtml(panel.unit)}</span><span>${breakdown || '60 phút gần nhất'}</span></div></article>`;
+    }).join('');
+  }
+  async function refresh() {
+    try {
+      const response = await fetch('/api/dashboard', {cache: 'no-store'});
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      render(data);
+      if (!window.refreshTimer) window.refreshTimer = setInterval(refresh, data.refresh_seconds * 1000);
+    } catch (error) {
+      document.getElementById('state').textContent = 'Không đọc được dashboard: ' + error.message;
+    }
+  }
+  refresh();
+</script>
+</body>
+</html>
